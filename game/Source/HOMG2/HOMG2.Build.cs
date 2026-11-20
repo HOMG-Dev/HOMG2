@@ -12,6 +12,8 @@ public class HOMG2 : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"MassEntity",
+			"MassCore",
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",
@@ -23,7 +25,10 @@ public class HOMG2 : ModuleRules
 			"Slate"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd"); // Editor-only PIE integration test
+		}
 
 		PublicIncludePaths.AddRange(new string[] {
 			"HOMG2",
