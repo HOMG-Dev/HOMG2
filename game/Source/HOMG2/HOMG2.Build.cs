@@ -24,6 +24,7 @@ public class HOMG2 : ModuleRules
 			"UMG",
 			"Slate"
 		});
+		PrivateDependencyModuleNames.Add("SlateCore");
 
 		if (Target.bBuildEditor)
 		{
