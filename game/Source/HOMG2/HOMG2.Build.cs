@@ -25,6 +25,8 @@ public class HOMG2 : ModuleRules
 			"Slate"
 		});
 
+		PrivateDependencyModuleNames.Add("SlateCore");
+
 		if (Target.bBuildEditor)
 		{
 			PrivateDependencyModuleNames.Add("UnrealEd"); // Editor-only PIE integration test
@@ -39,9 +41,6 @@ public class HOMG2 : ModuleRules
 			"HOMG2/Variant_TwinStick/Gameplay",
 			"HOMG2/Variant_TwinStick/UI"
 		});
-
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
