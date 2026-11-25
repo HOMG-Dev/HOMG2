@@ -15,7 +15,6 @@ class HOMG2_API AFieldPlayerController : public AFrameworkPlayerController
 
 public:
 	AFieldPlayerController();
-
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -27,9 +26,18 @@ private:
 	void AddSwizzledKey(FKey Key, bool bNegate);
 	void UpdatePanInput(const struct FInputActionValue& Value);
 	void ClearPanInput();
+	void UpdateHeightInput(const struct FInputActionValue& Value);
+	void ClearHeightInput();
+	void ApplyZoomInput(const struct FInputActionValue& Value);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> PanAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> HeightAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> ZoomAction;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputMappingContext> FieldMappingContext;

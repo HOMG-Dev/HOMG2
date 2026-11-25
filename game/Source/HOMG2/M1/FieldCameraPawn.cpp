@@ -31,7 +31,15 @@ AFieldCameraPawn::AFieldCameraPawn()
 void AFieldCameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
+	CameraArm->TargetArmLength = FMath::Clamp(CameraArm->TargetArmLength,
+		MinArmLength, FMath::Max(MinArmLength, MaxArmLength));
 	bHasFieldBounds = FindFieldBounds();
+	if (bHasFieldBounds)
+	{
+		FVector Location = GetActorLocation();
+		Location.Z = ClampHeight(Location.Z);
+		SetActorLocation(Location);
+	}
 }
 
 bool AFieldCameraPawn::FindFieldBounds()
@@ -44,11 +52,18 @@ bool AFieldCameraPawn::FindFieldBounds()
 		return false;
 	}
 
-	FVector BoundsExtent;
-	GroundActors[0]->GetActorBounds(false, FieldCenter, BoundsExtent);
-	FieldExtent = FVector2D(BoundsExtent.X, BoundsExtent.Y);
-	FieldCenter.Z = GetActorLocation().Z;
+	FVector BoundsCenter, BoundsExtent;
+	GroundActors[0]->GetActorBounds(false, BoundsCenter, BoundsExtent);
+	FieldCenter = FVector2D(BoundsCenter);
+	FieldExtent = FVector2D(BoundsExtent);
+	FieldGroundHeight = BoundsCenter.Z + BoundsExtent.Z;
 	return FieldExtent.X > BoundaryInset && FieldExtent.Y > BoundaryInset;
+}
+
+double AFieldCameraPawn::ClampHeight(const double Height) const
+{
+	return FMath::Clamp(Height, FieldGroundHeight + MinGroundClearance,
+		FieldGroundHeight + FMath::Max(MinGroundClearance, MaxGroundClearance));
 }
 
 void AFieldCameraPawn::SetPanInput(const FVector2D Input)
@@ -56,29 +71,46 @@ void AFieldCameraPawn::SetPanInput(const FVector2D Input)
 	PanInput = Input.GetClampedToMaxSize(1.0f);
 }
 
+void AFieldCameraPawn::SetHeightInput(const float Input)
+{
+	HeightInput = FMath::Clamp(Input, -1.0f, 1.0f);
+}
+
+void AFieldCameraPawn::ApplyZoomInput(const float Input)
+{
+	if (!FMath::IsNearlyZero(Input))
+	{
+		CameraArm->TargetArmLength = FMath::Clamp(CameraArm->TargetArmLength - Input * ZoomStep,
+			MinArmLength, FMath::Max(MinArmLength, MaxArmLength));
+	}
+}
+
 void AFieldCameraPawn::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (!bHasFieldBounds || DeltaSeconds <= 0.0f || PanInput.IsNearlyZero())
+	if (!bHasFieldBounds || DeltaSeconds <= 0.0f || (PanInput.IsNearlyZero() && FMath::IsNearlyZero(HeightInput)))
 	{
 		return;
 	}
 
-	FVector PanRight = Camera->GetRightVector();
-	PanRight.Z = 0.0f;
-	PanRight.Normalize();
-	FVector PanUp = Camera->GetUpVector();
-	PanUp.Z = 0.0f;
-	PanUp.Normalize();
-	FVector PanDirection = PanRight * PanInput.X + PanUp * PanInput.Y;
-	PanDirection = PanDirection.GetClampedToMaxSize(1.0f);
-
-	FVector Location = GetActorLocation() + PanDirection * PanSpeed * DeltaSeconds;
-	Location.X = FMath::Clamp(Location.X,
-		FieldCenter.X - FieldExtent.X + BoundaryInset,
-		FieldCenter.X + FieldExtent.X - BoundaryInset);
-	Location.Y = FMath::Clamp(Location.Y,
-		FieldCenter.Y - FieldExtent.Y + BoundaryInset,
-		FieldCenter.Y + FieldExtent.Y - BoundaryInset);
+	FVector Location = GetActorLocation();
+	if (!PanInput.IsNearlyZero())
+	{
+		FVector PanRight = Camera->GetRightVector();
+		PanRight.Z = 0.0f;
+		PanRight.Normalize();
+		FVector PanUp = Camera->GetUpVector();
+		PanUp.Z = 0.0f;
+		PanUp.Normalize();
+		const FVector PanDirection = (PanRight * PanInput.X + PanUp * PanInput.Y).GetClampedToMaxSize(1.0f);
+		Location += PanDirection * PanSpeed * DeltaSeconds;
+		Location.X = FMath::Clamp(Location.X,
+			FieldCenter.X - FieldExtent.X + BoundaryInset,
+			FieldCenter.X + FieldExtent.X - BoundaryInset);
+		Location.Y = FMath::Clamp(Location.Y,
+			FieldCenter.Y - FieldExtent.Y + BoundaryInset,
+			FieldCenter.Y + FieldExtent.Y - BoundaryInset);
+	}
+	Location.Z = ClampHeight(Location.Z + HeightInput * HeightSpeed * DeltaSeconds);
 	SetActorLocation(Location);
 }
