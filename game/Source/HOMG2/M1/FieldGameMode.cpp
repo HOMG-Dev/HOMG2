@@ -1,13 +1,12 @@
 #include "FieldGameMode.h"
 
-#include "Framework/Network/FrameworkPlayerController.h"
-#include "GameFramework/HUD.h"
 #include "M1/FieldCameraPawn.h"
 #include "M1/FieldPlayerController.h"
+#include "M1/UI/FieldHud.h"
 
 AFieldGameMode::AFieldGameMode()
 {
 	DefaultPawnClass = AFieldCameraPawn::StaticClass();
-	HUDClass = AHUD::StaticClass();
+	HUDClass = AFieldHud::StaticClass();
 	PlayerControllerClass = AFieldPlayerController::StaticClass();
 }
