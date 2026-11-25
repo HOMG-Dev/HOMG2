@@ -39,6 +39,7 @@ void AFieldPlayerController::BeginPlay()
 void AFieldPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearPanInput();
+	ClearHeightInput();
 	if (EnhancedInputSubsystem.IsValid() && FieldMappingContext)
 	{
 		EnhancedInputSubsystem->RemoveMappingContext(FieldMappingContext);
@@ -54,18 +55,34 @@ void AFieldPlayerController::SetupInputComponent()
 	PanAction = NewObject<UInputAction>(this, TEXT("FieldPanAction"), RF_Transient);
 	PanAction->ValueType = EInputActionValueType::Axis2D;
 	PanAction->AccumulationBehavior = EInputActionAccumulationBehavior::Cumulative;
+	HeightAction = NewObject<UInputAction>(this, TEXT("FieldHeightAction"), RF_Transient);
+	HeightAction->ValueType = EInputActionValueType::Axis1D;
+	HeightAction->AccumulationBehavior = EInputActionAccumulationBehavior::Cumulative;
+	ZoomAction = NewObject<UInputAction>(this, TEXT("FieldZoomAction"), RF_Transient);
+	ZoomAction->ValueType = EInputActionValueType::Axis1D;
 
 	FieldMappingContext = NewObject<UInputMappingContext>(this, TEXT("FieldMappingContext"), RF_Transient);
 	FieldMappingContext->MapKey(PanAction, EKeys::D);
 	AddNegatedKey(EKeys::A, true, false);
 	AddSwizzledKey(EKeys::W, false);
 	AddSwizzledKey(EKeys::S, true);
+	FieldMappingContext->MapKey(HeightAction, EKeys::E);
+	{
+		FEnhancedActionKeyMapping& Mapping = FieldMappingContext->MapKey(HeightAction, EKeys::Q);
+		UInputModifierNegate* Negate = NewObject<UInputModifierNegate>(FieldMappingContext);
+		Mapping.Modifiers.Add(Negate);
+	}
+	FieldMappingContext->MapKey(ZoomAction, EKeys::MouseWheelAxis);
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		EnhancedInput->BindAction(PanAction, ETriggerEvent::Triggered, this, &ThisClass::UpdatePanInput);
 		EnhancedInput->BindAction(PanAction, ETriggerEvent::Completed, this, &ThisClass::ClearPanInput);
 		EnhancedInput->BindAction(PanAction, ETriggerEvent::Canceled, this, &ThisClass::ClearPanInput);
+		EnhancedInput->BindAction(HeightAction, ETriggerEvent::Triggered, this, &ThisClass::UpdateHeightInput);
+		EnhancedInput->BindAction(HeightAction, ETriggerEvent::Completed, this, &ThisClass::ClearHeightInput);
+		EnhancedInput->BindAction(HeightAction, ETriggerEvent::Canceled, this, &ThisClass::ClearHeightInput);
+		EnhancedInput->BindAction(ZoomAction, ETriggerEvent::Triggered, this, &ThisClass::ApplyZoomInput);
 	}
 }
 
@@ -108,8 +125,33 @@ void AFieldPlayerController::ClearPanInput()
 	}
 }
 
+void AFieldPlayerController::UpdateHeightInput(const FInputActionValue& Value)
+{
+	if (AFieldCameraPawn* FieldPawn = Cast<AFieldCameraPawn>(GetPawn()))
+	{
+		FieldPawn->SetHeightInput(Value.Get<float>());
+	}
+}
+
+void AFieldPlayerController::ClearHeightInput()
+{
+	if (AFieldCameraPawn* FieldPawn = Cast<AFieldCameraPawn>(GetPawn()))
+	{
+		FieldPawn->SetHeightInput(0.0f);
+	}
+}
+
+void AFieldPlayerController::ApplyZoomInput(const FInputActionValue& Value)
+{
+	if (AFieldCameraPawn* FieldPawn = Cast<AFieldCameraPawn>(GetPawn()))
+	{
+		FieldPawn->ApplyZoomInput(Value.Get<float>());
+	}
+}
+
 void AFieldPlayerController::OnUnPossess()
 {
 	ClearPanInput();
+	ClearHeightInput();
 	Super::OnUnPossess();
 }

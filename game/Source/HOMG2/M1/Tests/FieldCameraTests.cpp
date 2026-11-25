@@ -2,6 +2,7 @@
 
 #include "Tests/AutomationCommon.h"
 #include "Components/BoxComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "M1/FieldCameraPawn.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFieldCameraMovementTest, "HOMG2.M1.FieldCameraMovement",
@@ -35,6 +36,7 @@ bool FFieldCameraMovementTest::RunTest(const FString&)
 	{
 		return false;
 	}
+	TestEqual(TEXT("Camera pawn starts above ground clearance"), Pawn->GetActorLocation().Z, 400.0);
 
 	auto MoveForHalfSecond = [Pawn](const FVector2D Input)
 	{
@@ -84,6 +86,49 @@ bool FFieldCameraMovementTest::RunTest(const FString&)
 	TestEqual(TEXT("Holding west cannot leave the field"), Pawn->GetActorLocation().Y, -3100.0);
 	MoveForHalfSecond(FVector2D(1.0f, 0.0f));
 	TestTrue(TEXT("East input moves away from the west edge"), Pawn->GetActorLocation().Y > -3100.0f);
+
+	Pawn->SetPanInput(FVector2D::ZeroVector);
+	Pawn->SetActorLocation(FVector(0.0, 0.0, 400.0));
+	const USpringArmComponent* CameraArm = Pawn->FindComponentByClass<USpringArmComponent>();
+	if (!TestNotNull(TEXT("Find camera spring arm"), CameraArm))
+	{
+		return false;
+	}
+	Pawn->ApplyZoomInput(1.0f);
+	TestEqual(TEXT("Wheel input zooms in without changing height"), CameraArm->TargetArmLength, 12600.0f);
+	TestEqual(TEXT("Zoom input leaves pawn height unchanged"), Pawn->GetActorLocation().Z, 400.0);
+	Pawn->ApplyZoomInput(-1.0f);
+	TestEqual(TEXT("Reverse wheel input restores zoom"), CameraArm->TargetArmLength, 13500.0f);
+	Pawn->ApplyZoomInput(100.0f);
+	TestEqual(TEXT("Zoom-in stops at local-view minimum"), CameraArm->TargetArmLength, 4000.0f);
+	Pawn->ApplyZoomInput(-1.0f);
+	TestTrue(TEXT("Reverse wheel input escapes zoom minimum"), CameraArm->TargetArmLength > 4000.0f);
+	Pawn->ApplyZoomInput(-100.0f);
+	TestEqual(TEXT("Zoom-out stops at global-view maximum"), CameraArm->TargetArmLength, 26000.0f);
+	Pawn->ApplyZoomInput(1.0f);
+	TestTrue(TEXT("Reverse wheel input escapes zoom maximum"), CameraArm->TargetArmLength < 26000.0f);
+
+	const float ArmLengthBeforeHeight = CameraArm->TargetArmLength;
+	Pawn->SetHeightInput(-1.0f);
+	Pawn->Tick(100.0f);
+	TestEqual(TEXT("Height stops at ground clearance minimum"), Pawn->GetActorLocation().Z, 400.0);
+	Pawn->SetHeightInput(1.0f);
+	Pawn->Tick(100.0f);
+	TestEqual(TEXT("Height reaches configured global maximum"), Pawn->GetActorLocation().Z, 12100.0);
+	Pawn->Tick(100.0f);
+	TestEqual(TEXT("Holding height cannot exceed maximum"), Pawn->GetActorLocation().Z, 12100.0);
+	Pawn->SetHeightInput(-1.0f);
+	Pawn->Tick(100.0f);
+	TestEqual(TEXT("Reverse height input escapes maximum"), Pawn->GetActorLocation().Z, 400.0);
+	Pawn->Tick(100.0f);
+	TestEqual(TEXT("Holding height cannot pass below ground"), Pawn->GetActorLocation().Z, 400.0);
+	Pawn->SetHeightInput(1.0f);
+	Pawn->Tick(0.5f);
+	TestEqual(TEXT("Reverse height input escapes minimum"), Pawn->GetActorLocation(), FVector(0.0, 0.0, 1300.0));
+	Pawn->SetHeightInput(0.0f);
+	Pawn->Tick(1.0f);
+	TestEqual(TEXT("Released height input leaves the camera stationary"), Pawn->GetActorLocation().Z, 1300.0);
+	TestEqual(TEXT("Height input leaves arm length unchanged"), CameraArm->TargetArmLength, ArmLengthBeforeHeight);
 
 	return true;
 }
