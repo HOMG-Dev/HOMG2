@@ -9,6 +9,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Layout/WidgetPath.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #define LOCTEXT_NAMESPACE "HOMG2M1Menu"
 
@@ -107,7 +108,8 @@ void AM1MenuPlayerController::HandleStartClicked()
 
 void AM1MenuPlayerController::HandleExitClicked()
 {
-	UE_LOG(LogM1Menu, Display, TEXT("Exit selected"));
+	UE_LOG(LogM1Menu, Display, TEXT("Quitting game from the M1 menu"));
+	UKismetSystemLibrary::QuitGame(this, this, EQuitPreference::Quit, false);
 }
 
 AM1MenuGameMode::AM1MenuGameMode()
