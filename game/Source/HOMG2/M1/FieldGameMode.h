@@ -4,6 +4,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "FieldGameMode.generated.h"
 
+class UFieldMatchSession;
+
 UCLASS()
 class HOMG2_API AFieldGameMode : public AGameModeBase
 {
@@ -11,4 +13,12 @@ class HOMG2_API AFieldGameMode : public AGameModeBase
 
 public:
 	AFieldGameMode();
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+
+	UFUNCTION(BlueprintPure, Category="M1|Match")
+	UFieldMatchSession* GetMatchSession() const { return MatchSession; }
+
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UFieldMatchSession> MatchSession;
 };
