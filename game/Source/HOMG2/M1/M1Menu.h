@@ -1,11 +1,13 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Engine/EngineBaseTypes.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerController.h"
 #include "M1Menu.generated.h"
 
 class UButton;
+class UTextBlock;
 class UVerticalBox;
 
 UCLASS()
@@ -16,6 +18,8 @@ class HOMG2_API UM1MenuWidget : public UUserWidget
 public:
 	UButton* GetStartButton() const { return StartButton; }
 	UButton* GetExitButton() const { return ExitButton; }
+	void SetTravelPending();
+	void ShowTravelFailure();
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -30,6 +34,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UButton> ExitButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> TravelStatus;
 };
 
 UCLASS()
@@ -48,8 +55,13 @@ private:
 	UFUNCTION()
 	void HandleExitClicked();
 
+	void HandleTravelFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& Reason);
+	void RestoreStartAfterTravelFailure();
+
 	UPROPERTY(Transient)
 	TObjectPtr<UM1MenuWidget> Menu;
+	FDelegateHandle TravelFailureHandle;
+	bool bBattlefieldTravelPending = false;
 };
 
 UCLASS()

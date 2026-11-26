@@ -2,6 +2,8 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LocalPlayer.h"
 #include "Framework/Network/FrameworkPlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "InputAction.h"
@@ -10,7 +12,7 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "M1/FieldCameraPawn.h"
-#include "Engine/LocalPlayer.h"
+#include "Widgets/SViewport.h"
 
 AFieldPlayerController::AFieldPlayerController()
 {
@@ -28,6 +30,16 @@ void AFieldPlayerController::BeginPlay()
 
 	if (auto* LocalPlayer = GetLocalPlayer())
 	{
+		if (UGameViewportClient* Viewport = LocalPlayer->ViewportClient)
+		{
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(Viewport->GetGameViewportWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			InputMode.SetHideCursorDuringCapture(false);
+			SetInputMode(InputMode);
+			FlushPressedKeys();
+		}
+
 		EnhancedInputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
 		if (EnhancedInputSubsystem.IsValid() && FieldMappingContext)
 		{
