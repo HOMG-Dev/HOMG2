@@ -13,6 +13,25 @@ enum class EFieldMatchPhase : uint8
 	Settlement
 };
 
+UENUM(BlueprintType)
+enum class EFieldCommandCode : uint8
+{
+	Success,
+	NoActiveMatch,
+	WrongPhase,
+	InvalidAmount,
+	InsufficientGold
+};
+
+USTRUCT(BlueprintType)
+struct FFieldCommandResult
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly) EFieldCommandCode Code = EFieldCommandCode::Success;
+	UPROPERTY(BlueprintReadOnly) FText Reason;
+	bool Succeeded() const { return Code == EFieldCommandCode::Success; }
+};
+
 USTRUCT(BlueprintType)
 struct FFieldMemberSnapshot
 {
@@ -71,10 +90,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="M1|Match")
 	bool Ready();
 
-	// Minimal operations used to exercise the state source; future gameplay commands
-	// add their own validation and commit through this owner.
+	// Fixture-only mutations for the D1 isolation test, unavailable to runtime commands.
+#if WITH_DEV_AUTOMATION_TESTS
 	bool SetGold(int32 Gold);
 	bool RemoveEquipment(const FGuid& EquipmentId);
+#endif
+
+	// Shared phase gate for deployment operations; check before any mutation.
+	FFieldCommandResult ValidateDeploymentCommand() const;
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	FFieldCommandResult SpendTestGold(int32 Amount);
 
 private:
 	void UpdateClock();

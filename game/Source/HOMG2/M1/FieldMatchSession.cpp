@@ -24,6 +24,7 @@ void UFieldMatchSession::InitializeFixture()
 	State.Inventory.Add(Equipment);
 }
 
+#if WITH_DEV_AUTOMATION_TESTS
 bool UFieldMatchSession::SetGold(int32 Gold)
 {
 	if (Gold < 0 || Gold == State.Gold)
@@ -50,6 +51,7 @@ bool UFieldMatchSession::RemoveEquipment(const FGuid& EquipmentId)
 	return true;
 }
 
+#endif
 
 bool UFieldMatchSession::ConfigureAndStartClock(UWorld* World, float DeploymentSeconds,
 	float SpectatingSeconds, float SettlementSeconds)
@@ -138,4 +140,44 @@ bool UFieldMatchSession::Ready()
 	}
 	AdvancePhase();
 	return true;
+}
+
+FFieldCommandResult UFieldMatchSession::ValidateDeploymentCommand() const
+{
+	FFieldCommandResult Result;
+	if (!ClockWorld.IsValid())
+	{
+		Result.Code = EFieldCommandCode::NoActiveMatch;
+		Result.Reason = NSLOCTEXT("FieldMatch", "NoActiveMatch", "当前没有进行中的对局。");
+	}
+	else if (State.Phase != EFieldMatchPhase::Deployment)
+	{
+		Result.Code = EFieldCommandCode::WrongPhase;
+		Result.Reason = NSLOCTEXT("FieldMatch", "WrongPhase", "只能在部署阶段执行此操作。");
+	}
+	return Result;
+}
+
+FFieldCommandResult UFieldMatchSession::SpendTestGold(int32 Amount)
+{
+	FFieldCommandResult Result = ValidateDeploymentCommand();
+	if (!Result.Succeeded())
+	{
+		return Result;
+	}
+	if (Amount <= 0)
+	{
+		Result.Code = EFieldCommandCode::InvalidAmount;
+		Result.Reason = NSLOCTEXT("FieldMatch", "InvalidAmount", "消耗金额必须大于零。");
+		return Result;
+	}
+	if (Amount > State.Gold)
+	{
+		Result.Code = EFieldCommandCode::InsufficientGold;
+		Result.Reason = NSLOCTEXT("FieldMatch", "InsufficientGold", "金币不足。");
+		return Result;
+	}
+	State.Gold -= Amount;
+	Changed.Broadcast();
+	return Result;
 }
