@@ -15,6 +15,9 @@ bool FFieldFrontlineTest::RunTest(const FString&)
 	const FFieldMatchSnapshot Snapshot = Session->GetSnapshot();
 	TestTrue(TEXT("Frontline has multiple points"), Snapshot.Frontline.Num() >= 2);
 	TestFalse(TEXT("Enemy frontline is not exposed"), Snapshot.Frontline.IsEmpty());
+	const FVector Original = Snapshot.Frontline[0];
+	TestTrue(TEXT("Switch sample frontline"), Session->ToggleFrontlineSample());
+	TestNotEqual(TEXT("Sample changes line data"), Session->GetSnapshot().Frontline[0], Original);
 	return true;
 }
 #endif

@@ -96,6 +96,16 @@ FFieldCommandResult UFieldMatchSession::CommitSkillSelection(const FVector Locat
 	return Result;
 }
 
+bool UFieldMatchSession::ToggleFrontlineSample()
+{
+	State.FrontlineSample = State.FrontlineSample == 0 ? 1 : 0;
+	State.Frontline = State.FrontlineSample == 0
+		? TArray<FVector>{FVector(-4200.0f, -850.0f, 35.0f), FVector(-1800.0f, -250.0f, 35.0f), FVector(400.0f, -500.0f, 35.0f), FVector(2900.0f, 250.0f, 35.0f)}
+		: TArray<FVector>{FVector(-4200.0f, -500.0f, 35.0f), FVector(-1600.0f, 150.0f, 35.0f), FVector(600.0f, 50.0f, 35.0f), FVector(2900.0f, 650.0f, 35.0f)};
+	Changed.Broadcast();
+	return true;
+}
+
 #if WITH_DEV_AUTOMATION_TESTS
 bool UFieldMatchSession::SetGold(int32 Gold)
 {

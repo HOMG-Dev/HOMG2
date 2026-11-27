@@ -111,6 +111,7 @@ struct FFieldMatchSnapshot
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> VisibleIntel;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> HistoricalIntel;
 	UPROPERTY(BlueprintReadOnly) TArray<FVector> Frontline;
+	UPROPERTY(BlueprintReadOnly) int32 FrontlineSample = 0;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldSkillPreview> SkillPreviews;
 };
 
@@ -154,6 +155,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="M1|Match")
 	FFieldCommandResult CommitSkillSelection(FVector Location);
 	bool IsSkillSelectionActive() const { return PendingSkill != EFieldSkillType::None; }
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	bool ToggleFrontlineSample();
 
 private:
 	void UpdateClock();

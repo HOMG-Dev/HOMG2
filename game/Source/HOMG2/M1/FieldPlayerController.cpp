@@ -201,3 +201,11 @@ void AFieldPlayerController::DemoWound()
 		}
 	}
 }
+
+void AFieldPlayerController::DemoFrontlineSample()
+{
+	if (AFieldGameMode* GameMode = GetWorld()->GetAuthGameMode<AFieldGameMode>())
+	{
+		if (UFieldMatchSession* Session = GameMode->GetMatchSession()) Session->ToggleFrontlineSample();
+	}
+}
