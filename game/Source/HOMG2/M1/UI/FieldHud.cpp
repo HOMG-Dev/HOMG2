@@ -3,6 +3,8 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
+#include "M1/FieldGameMode.h"
+#include "M1/FieldMatchSession.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
@@ -180,6 +182,11 @@ TSharedRef<SWidget> BuildLayout()
 }
 }
 
+AFieldHud::AFieldHud()
+{
+	PrimaryActorTick.bCanEverTick = false;
+}
+
 void AFieldHud::BeginPlay()
 {
 	Super::BeginPlay();
@@ -191,6 +198,15 @@ void AFieldHud::BeginPlay()
 	{
 		LocalPlayer = Player;
 		ViewportClient = Viewport;
+		if (AFieldGameMode* GameMode = GetWorld()->GetAuthGameMode<AFieldGameMode>())
+		{
+			MatchSession = GameMode->GetMatchSession();
+			if (MatchSession.IsValid())
+			{
+				MatchChangedHandle = MatchSession->OnChanged().AddUObject(this, &ThisClass::HandleMatchChanged);
+			}
+		}
+
 		Layout = BuildLayout();
 		Viewport->AddViewportWidgetForPlayer(Player, Layout.ToSharedRef(), 0);
 	}
@@ -198,12 +214,32 @@ void AFieldHud::BeginPlay()
 
 void AFieldHud::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (MatchSession.IsValid())
+	{
+		MatchSession->OnChanged().Remove(MatchChangedHandle);
+	}
+	RemoveLayout();
+	MatchSession.Reset();
+	Super::EndPlay(EndPlayReason);
+}
+
+void AFieldHud::HandleMatchChanged()
+{
+	// E2 keeps the subscription alive for the whole battlefield lifetime. E3 and later
+	// stages replace the fixture contents from the same session snapshot.
+	if (Layout.IsValid())
+	{
+		Layout->Invalidate(EInvalidateWidgetReason::PaintAndVolatility);
+	}
+}
+
+void AFieldHud::RemoveLayout()
+{
 	if (Layout.IsValid() && ViewportClient.IsValid() && LocalPlayer.IsValid())
 	{
 		ViewportClient->RemoveViewportWidgetForPlayer(LocalPlayer.Get(), Layout.ToSharedRef());
 	}
 	Layout.Reset();
-	Super::EndPlay(EndPlayReason);
 }
 
 #undef LOCTEXT_NAMESPACE
