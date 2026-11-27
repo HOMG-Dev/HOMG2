@@ -26,6 +26,11 @@ private:
 	void HandleMatchChanged();
 	void RemoveLayout();
 	FReply HandleReadyClicked();
+	FReply HandleTrenchClicked();
+	FReply HandleWireClicked();
+	FReply HandleAntiPersonnelMineClicked();
+	FReply HandleAntiTankMineClicked();
+	FReply HandleAirSupportClicked();
 
 	TSharedPtr<SWidget> Layout;
 	TWeakObjectPtr<UGameViewportClient> ViewportClient;

@@ -162,24 +162,37 @@ TSharedRef<SWidget> BattalionDetails(const FFieldMatchSnapshot& Snapshot)
 		+ SVerticalBox::Slot().FillHeight(1)[Members], Panel, FMargin(12));
 }
 
-TSharedRef<SWidget> ActionBar(const FFieldMatchSnapshot& Snapshot, const FOnClicked& ReadyHandler)
+TSharedRef<SWidget> ActionButton(const FText& Label, const FLinearColor& Color, const FOnClicked& Handler)
+{
+	return SNew(SButton)
+		.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+		.ContentPadding(0)
+		.OnClicked(Handler)
+		[Surface(Text(Label, 11, Ink, true), Color, FMargin(10, 8))];
+}
+
+TSharedRef<SWidget> ActionBar(const FFieldMatchSnapshot& Snapshot, const FOnClicked& ReadyHandler,
+	const FOnClicked& TrenchHandler, const FOnClicked& WireHandler, const FOnClicked& AntiPersonnelMineHandler,
+	const FOnClicked& AntiTankMineHandler, const FOnClicked& AirSupportHandler)
 {
 	TSharedRef<SHorizontalBox> RowWidget = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
 		[Text(Snapshot.Phase == EFieldMatchPhase::Deployment ? LOCTEXT("DeploymentControls", "DEPLOYMENT CONTROLS") : LOCTEXT("ReadOnly", "READ-ONLY OBSERVATION"), 10, Muted, true)];
 	if (Snapshot.Phase == EFieldMatchPhase::Deployment)
 	{
-		RowWidget->AddSlot().AutoWidth()
-			[ SNew(SButton)
-				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-				.ContentPadding(0)
-				.OnClicked(ReadyHandler)
-				[Surface(Text(LOCTEXT("Ready", "Ready"), 12, Accent, true), Selection, FMargin(12, 8))] ];
+		RowWidget->AddSlot().AutoWidth().Padding(0, 0, 4, 0)[ActionButton(LOCTEXT("Trench", "Trench"), Row, TrenchHandler)];
+		RowWidget->AddSlot().AutoWidth().Padding(0, 0, 4, 0)[ActionButton(LOCTEXT("Wire", "Wire"), Row, WireHandler)];
+		RowWidget->AddSlot().AutoWidth().Padding(0, 0, 4, 0)[ActionButton(LOCTEXT("AntiPersonnelMine", "AP mine"), Row, AntiPersonnelMineHandler)];
+		RowWidget->AddSlot().AutoWidth().Padding(0, 0, 4, 0)[ActionButton(LOCTEXT("AntiTankMine", "AT mine"), Row, AntiTankMineHandler)];
+		RowWidget->AddSlot().AutoWidth().Padding(0, 0, 4, 0)[ActionButton(LOCTEXT("AirSupport", "Air support"), Row, AirSupportHandler)];
+		RowWidget->AddSlot().AutoWidth()[ActionButton(LOCTEXT("Ready", "Ready"), Selection, ReadyHandler)];
 	}
 	return Surface(RowWidget, Panel, FMargin(12, 7));
 }
 
-TSharedRef<SWidget> BuildLayout(const FFieldMatchSnapshot& Snapshot, const FOnClicked& ReadyHandler)
+TSharedRef<SWidget> BuildLayout(const FFieldMatchSnapshot& Snapshot, const FOnClicked& ReadyHandler,
+	const FOnClicked& TrenchHandler, const FOnClicked& WireHandler, const FOnClicked& AntiPersonnelMineHandler,
+	const FOnClicked& AntiTankMineHandler, const FOnClicked& AirSupportHandler)
 {
 	return SNew(SOverlay).Visibility(EVisibility::SelfHitTestInvisible)
 		+ SOverlay::Slot().Padding(12)
@@ -193,7 +206,8 @@ TSharedRef<SWidget> BuildLayout(const FFieldMatchSnapshot& Snapshot, const FOnCl
 				+ SHorizontalBox::Slot().FillWidth(0.57f)[SNew(SSpacer).Visibility(EVisibility::HitTestInvisible)]
 				+ SHorizontalBox::Slot().FillWidth(0.24f)[BattalionDetails(Snapshot)]
 			]
-			+ SVerticalBox::Slot().AutoHeight()[ActionBar(Snapshot, ReadyHandler)]
+			+ SVerticalBox::Slot().AutoHeight()[ActionBar(Snapshot, ReadyHandler, TrenchHandler, WireHandler,
+				AntiPersonnelMineHandler, AntiTankMineHandler, AirSupportHandler)]
 		]
 		+ SOverlay::Slot()
 		[
@@ -233,7 +247,12 @@ void AFieldHud::BeginPlay()
 		}
 
 		const FFieldMatchSnapshot Snapshot = MatchSession.IsValid() ? MatchSession->GetSnapshot() : FFieldMatchSnapshot{};
-		Layout = BuildLayout(Snapshot, FOnClicked::CreateUObject(this, &ThisClass::HandleReadyClicked));
+		Layout = BuildLayout(Snapshot, FOnClicked::CreateUObject(this, &ThisClass::HandleReadyClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleTrenchClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleWireClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleAntiPersonnelMineClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleAntiTankMineClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleAirSupportClicked));
 		Viewport->AddViewportWidgetForPlayer(Player, Layout.ToSharedRef(), 0);
 	}
 }
@@ -295,6 +314,15 @@ void AFieldHud::DrawHUD()
 				Screen.X, Screen.Y + 22.0f, nullptr, 1.0f);
 		}
 	}
+	for (const FFieldSkillPreview& Preview : Snapshot.SkillPreviews)
+	{
+		FVector2D Screen;
+		if (Controller->ProjectWorldLocationToScreen(Preview.Location, Screen))
+		{
+			DrawRect(Preview.Type == EFieldSkillType::AirSupport ? FLinearColor(1.0f, 0.62f, 0.25f, 0.9f) : Accent,
+				Screen.X - 24.0f, Screen.Y - 24.0f, 48.0f, 48.0f);
+		}
+	}
 }
 
 void AFieldHud::HandleMatchChanged()
@@ -302,7 +330,12 @@ void AFieldHud::HandleMatchChanged()
 	if (MatchSession.IsValid() && ViewportClient.IsValid() && LocalPlayer.IsValid())
 	{
 		RemoveLayout();
-		Layout = BuildLayout(MatchSession->GetSnapshot(), FOnClicked::CreateUObject(this, &ThisClass::HandleReadyClicked));
+		Layout = BuildLayout(MatchSession->GetSnapshot(), FOnClicked::CreateUObject(this, &ThisClass::HandleReadyClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleTrenchClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleWireClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleAntiPersonnelMineClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleAntiTankMineClicked),
+			FOnClicked::CreateUObject(this, &ThisClass::HandleAirSupportClicked));
 		ViewportClient->AddViewportWidgetForPlayer(LocalPlayer.Get(), Layout.ToSharedRef(), 0);
 	}
 }
@@ -313,6 +346,36 @@ FReply AFieldHud::HandleReadyClicked()
 	{
 		MatchSession->Ready();
 	}
+	return FReply::Handled();
+}
+
+FReply AFieldHud::HandleTrenchClicked()
+{
+	if (MatchSession.IsValid()) MatchSession->BeginSkillSelection(EFieldSkillType::Trench);
+	return FReply::Handled();
+}
+
+FReply AFieldHud::HandleWireClicked()
+{
+	if (MatchSession.IsValid()) MatchSession->BeginSkillSelection(EFieldSkillType::Wire);
+	return FReply::Handled();
+}
+
+FReply AFieldHud::HandleAntiPersonnelMineClicked()
+{
+	if (MatchSession.IsValid()) MatchSession->BeginSkillSelection(EFieldSkillType::AntiPersonnelMine);
+	return FReply::Handled();
+}
+
+FReply AFieldHud::HandleAntiTankMineClicked()
+{
+	if (MatchSession.IsValid()) MatchSession->BeginSkillSelection(EFieldSkillType::AntiTankMine);
+	return FReply::Handled();
+}
+
+FReply AFieldHud::HandleAirSupportClicked()
+{
+	if (MatchSession.IsValid()) MatchSession->BeginSkillSelection(EFieldSkillType::AirSupport);
 	return FReply::Handled();
 }
 

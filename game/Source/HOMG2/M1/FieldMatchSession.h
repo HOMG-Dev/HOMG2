@@ -22,13 +22,26 @@ enum class EFieldUnitCondition : uint8
 };
 
 UENUM(BlueprintType)
+enum class EFieldSkillType : uint8
+{
+	None,
+	Trench,
+	Wire,
+	AntiPersonnelMine,
+	AntiTankMine,
+	AirSupport
+};
+
+UENUM(BlueprintType)
 enum class EFieldCommandCode : uint8
 {
 	Success,
 	NoActiveMatch,
 	WrongPhase,
 	InvalidAmount,
-	InsufficientGold
+	InsufficientGold,
+	InvalidTarget,
+	NoSkillSelection
 };
 
 USTRUCT(BlueprintType)
@@ -75,6 +88,14 @@ struct FFieldIntelSnapshot
 	UPROPERTY(BlueprintReadOnly) FText Label;
 };
 
+USTRUCT(BlueprintType)
+struct FFieldSkillPreview
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly) EFieldSkillType Type = EFieldSkillType::None;
+	UPROPERTY(BlueprintReadOnly) FVector Location = FVector::ZeroVector;
+};
+
 // A value copy: changing it never changes the session.
 USTRUCT(BlueprintType)
 struct FFieldMatchSnapshot
@@ -90,6 +111,7 @@ struct FFieldMatchSnapshot
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> VisibleIntel;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> HistoricalIntel;
 	UPROPERTY(BlueprintReadOnly) TArray<FVector> Frontline;
+	UPROPERTY(BlueprintReadOnly) TArray<FFieldSkillPreview> SkillPreviews;
 };
 
 DECLARE_MULTICAST_DELEGATE(FFieldMatchChanged);
@@ -125,6 +147,13 @@ public:
 	FFieldCommandResult SpendTestGold(int32 Amount);
 	UFUNCTION(BlueprintCallable, Category="M1|Match")
 	bool SetTestWound();
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	FFieldCommandResult BeginSkillSelection(EFieldSkillType Type);
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	FFieldCommandResult CancelSkillSelection();
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	FFieldCommandResult CommitSkillSelection(FVector Location);
+	bool IsSkillSelectionActive() const { return PendingSkill != EFieldSkillType::None; }
 
 private:
 	void UpdateClock();
@@ -136,6 +165,7 @@ private:
 	float DeploymentDuration = 45.0f;
 	float SpectatingDuration = 45.0f;
 	float SettlementDuration = 5.0f;
+	EFieldSkillType PendingSkill = EFieldSkillType::None;
 	FFieldMatchSnapshot State;
 	FFieldMatchChanged Changed;
 };

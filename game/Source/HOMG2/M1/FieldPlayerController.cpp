@@ -170,6 +170,27 @@ void AFieldPlayerController::OnUnPossess()
 	Super::OnUnPossess();
 }
 
+bool AFieldPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+	AFieldGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFieldGameMode>() : nullptr;
+	UFieldMatchSession* Session = GameMode ? GameMode->GetMatchSession() : nullptr;
+	if (Session && Params.Key == EKeys::Escape && Params.Event == IE_Pressed && Session->IsSkillSelectionActive())
+	{
+		Session->CancelSkillSelection();
+		return true;
+	}
+	if (Session && Params.Key == EKeys::LeftMouseButton && Params.Event == IE_Pressed && Session->IsSkillSelectionActive())
+	{
+		FHitResult Hit;
+		if (GetHitResultUnderCursor(ECC_Visibility, false, Hit) && Hit.bBlockingHit)
+		{
+			Session->CommitSkillSelection(Hit.ImpactPoint);
+			return true;
+		}
+	}
+	return Super::InputKey(Params);
+}
+
 void AFieldPlayerController::DemoWound()
 {
 	if (AFieldGameMode* GameMode = GetWorld()->GetAuthGameMode<AFieldGameMode>())

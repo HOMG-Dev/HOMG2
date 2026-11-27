@@ -44,6 +44,58 @@ bool UFieldMatchSession::SetTestWound()
 	return true;
 }
 
+FFieldCommandResult UFieldMatchSession::BeginSkillSelection(const EFieldSkillType Type)
+{
+	FFieldCommandResult Result = ValidateDeploymentCommand();
+	if (!Result.Succeeded()) return Result;
+	if (Type == EFieldSkillType::None)
+	{
+		Result.Code = EFieldCommandCode::InvalidTarget;
+		Result.Reason = NSLOCTEXT("FieldMatch", "InvalidSkill", "技能类型无效。");
+		return Result;
+	}
+	PendingSkill = Type;
+	Changed.Broadcast();
+	return Result;
+}
+
+FFieldCommandResult UFieldMatchSession::CancelSkillSelection()
+{
+	FFieldCommandResult Result;
+	if (!IsSkillSelectionActive())
+	{
+		Result.Code = EFieldCommandCode::NoSkillSelection;
+		Result.Reason = NSLOCTEXT("FieldMatch", "NoSkillSelection", "当前没有待选技能。");
+		return Result;
+	}
+	PendingSkill = EFieldSkillType::None;
+	Changed.Broadcast();
+	return Result;
+}
+
+FFieldCommandResult UFieldMatchSession::CommitSkillSelection(const FVector Location)
+{
+	FFieldCommandResult Result = ValidateDeploymentCommand();
+	if (!Result.Succeeded()) return Result;
+	if (!IsSkillSelectionActive())
+	{
+		Result.Code = EFieldCommandCode::NoSkillSelection;
+		Result.Reason = NSLOCTEXT("FieldMatch", "NoSkillSelection", "当前没有待选技能。");
+		return Result;
+	}
+	if (!FMath::IsFinite(Location.X) || !FMath::IsFinite(Location.Y) || Location.X < -5000.0f || Location.X > 5000.0f ||
+		Location.Y < -3000.0f || Location.Y > 3000.0f)
+	{
+		Result.Code = EFieldCommandCode::InvalidTarget;
+		Result.Reason = NSLOCTEXT("FieldMatch", "InvalidSkillTarget", "技能目标超出战场范围。");
+		return Result;
+	}
+	State.SkillPreviews.Add({PendingSkill, Location});
+	PendingSkill = EFieldSkillType::None;
+	Changed.Broadcast();
+	return Result;
+}
+
 #if WITH_DEV_AUTOMATION_TESTS
 bool UFieldMatchSession::SetGold(int32 Gold)
 {

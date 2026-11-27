@@ -22,6 +22,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 	virtual void OnUnPossess() override;
+	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 
 private:
 	void AddNegatedKey(FKey Key, bool bNegateX, bool bNegateY);
