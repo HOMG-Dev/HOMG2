@@ -252,6 +252,20 @@ void AFieldHud::DrawHUD()
 		? Snapshot.VisibleIntel : Snapshot.HistoricalIntel;
 	const FLinearColor MarkerColor = Snapshot.Phase == EFieldMatchPhase::Spectating
 		? Accent : FLinearColor(0.55f, 0.62f, 0.68f, 0.75f);
+	if (Snapshot.Phase == EFieldMatchPhase::Deployment)
+	{
+		for (int32 Index = 1; Index < Snapshot.Frontline.Num(); ++Index)
+		{
+			FVector2D Previous;
+			FVector2D Current;
+			if (Controller->ProjectWorldLocationToScreen(Snapshot.Frontline[Index - 1], Previous) &&
+				Controller->ProjectWorldLocationToScreen(Snapshot.Frontline[Index], Current))
+			{
+				DrawLine(Previous.X, Previous.Y, Current.X, Current.Y,
+					FLinearColor(0.45f, 0.65f, 0.78f, 0.8f), 3.0f);
+			}
+		}
+	}
 	for (const FFieldIntelSnapshot& Marker : Markers)
 	{
 		FVector2D Screen;

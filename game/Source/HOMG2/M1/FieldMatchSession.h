@@ -77,6 +77,7 @@ struct FFieldMatchSnapshot
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldEquipmentSnapshot> Inventory;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> VisibleIntel;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> HistoricalIntel;
+	UPROPERTY(BlueprintReadOnly) TArray<FVector> Frontline;
 };
 
 DECLARE_MULTICAST_DELEGATE(FFieldMatchChanged);

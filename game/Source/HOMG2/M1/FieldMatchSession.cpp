@@ -24,6 +24,10 @@ void UFieldMatchSession::InitializeFixture()
 	State.Inventory.Add(Equipment);
 	State.VisibleIntel.Add({FVector(900.0f, 450.0f, 30.0f), NSLOCTEXT("FieldMatch", "Contact", "Contact")});
 	State.HistoricalIntel.Reset();
+	State.Frontline = {
+		FVector(-4200.0f, -850.0f, 35.0f), FVector(-1800.0f, -250.0f, 35.0f),
+		FVector(400.0f, -500.0f, 35.0f), FVector(2900.0f, 250.0f, 35.0f)
+	};
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
