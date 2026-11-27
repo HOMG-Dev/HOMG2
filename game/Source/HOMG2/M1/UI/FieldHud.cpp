@@ -129,6 +129,10 @@ FText ConditionLabel(const EFieldUnitCondition Condition)
 
 TSharedRef<SWidget> BattalionDetails(const FFieldMatchSnapshot& Snapshot)
 {
+	if (!Snapshot.bDetailsAuthorized)
+	{
+		return Surface(Text(LOCTEXT("DetailsRevoked", "Unit details unavailable"), 14, Muted, true), Panel, FMargin(12));
+	}
 	const FFieldBattalionSnapshot* Battalion = Snapshot.Battalions.IsEmpty() ? nullptr : &Snapshot.Battalions[0];
 	const FText Deployed = Battalion ? ConditionLabel(Battalion->Condition) : LOCTEXT("MemberDeployed", "In formation");
 	const FText Roles[] = {
@@ -304,14 +308,17 @@ void AFieldHud::DrawHUD()
 			DrawText(Marker.Label.ToString(), MarkerColor, Screen.X, Screen.Y, nullptr, 1.1f);
 		}
 	}
-	for (const FFieldBattalionSnapshot& Battalion : Snapshot.Battalions)
+	if (Snapshot.bDetailsAuthorized)
 	{
-		FVector2D Screen;
-		if (Controller->ProjectWorldLocationToScreen(Battalion.Location, Screen))
+		for (const FFieldBattalionSnapshot& Battalion : Snapshot.Battalions)
 		{
-			DrawText(ConditionLabel(Battalion.Condition).ToString(),
-				Battalion.Condition == EFieldUnitCondition::Critical ? FLinearColor(1.0f, 0.45f, 0.35f) : Accent,
-				Screen.X, Screen.Y + 22.0f, nullptr, 1.0f);
+			FVector2D Screen;
+			if (Controller->ProjectWorldLocationToScreen(Battalion.Location, Screen))
+			{
+				DrawText(ConditionLabel(Battalion.Condition).ToString(),
+					Battalion.Condition == EFieldUnitCondition::Critical ? FLinearColor(1.0f, 0.45f, 0.35f) : Accent,
+					Screen.X, Screen.Y + 22.0f, nullptr, 1.0f);
+			}
 		}
 	}
 	for (const FFieldSkillPreview& Preview : Snapshot.SkillPreviews)

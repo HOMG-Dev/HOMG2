@@ -209,3 +209,11 @@ void AFieldPlayerController::DemoFrontlineSample()
 		if (UFieldMatchSession* Session = GameMode->GetMatchSession()) Session->ToggleFrontlineSample();
 	}
 }
+
+void AFieldPlayerController::DemoRevokeDetails()
+{
+	if (AFieldGameMode* GameMode = GetWorld()->GetAuthGameMode<AFieldGameMode>())
+	{
+		if (UFieldMatchSession* Session = GameMode->GetMatchSession()) Session->SetTestDetailsAuthorization(false);
+	}
+}

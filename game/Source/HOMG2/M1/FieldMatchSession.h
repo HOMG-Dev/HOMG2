@@ -113,6 +113,7 @@ struct FFieldMatchSnapshot
 	UPROPERTY(BlueprintReadOnly) TArray<FVector> Frontline;
 	UPROPERTY(BlueprintReadOnly) int32 FrontlineSample = 0;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldSkillPreview> SkillPreviews;
+	UPROPERTY(BlueprintReadOnly) bool bDetailsAuthorized = true;
 };
 
 DECLARE_MULTICAST_DELEGATE(FFieldMatchChanged);
@@ -148,6 +149,8 @@ public:
 	FFieldCommandResult SpendTestGold(int32 Amount);
 	UFUNCTION(BlueprintCallable, Category="M1|Match")
 	bool SetTestWound();
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	bool SetTestDetailsAuthorization(bool bAuthorized);
 	UFUNCTION(BlueprintCallable, Category="M1|Match")
 	FFieldCommandResult BeginSkillSelection(EFieldSkillType Type);
 	UFUNCTION(BlueprintCallable, Category="M1|Match")

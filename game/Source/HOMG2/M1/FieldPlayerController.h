@@ -18,6 +18,8 @@ public:
 	UFUNCTION(Exec)
 	void DemoWound();
 	UFUNCTION(Exec)
+	void DemoRevokeDetails();
+	UFUNCTION(Exec)
 	void DemoFrontlineSample();
 protected:
 	virtual void BeginPlay() override;

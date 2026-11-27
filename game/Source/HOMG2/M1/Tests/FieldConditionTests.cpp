@@ -15,6 +15,8 @@ bool FFieldConditionTest::RunTest(const FString&)
 	const FFieldMatchSnapshot Snapshot = Session->GetSnapshot();
 	TestEqual(TEXT("Battalion exposes condition state"), Snapshot.Battalions[0].Condition, EFieldUnitCondition::Critical);
 	TestEqual(TEXT("Member exposes condition state"), Snapshot.Battalions[0].Members[0].Condition, EFieldUnitCondition::Critical);
+	TestTrue(TEXT("Revoke details authorization"), Session->SetTestDetailsAuthorization(false));
+	TestFalse(TEXT("Details are no longer authorized"), Session->GetSnapshot().bDetailsAuthorized);
 	return true;
 }
 #endif

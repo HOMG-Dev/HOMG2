@@ -44,6 +44,17 @@ bool UFieldMatchSession::SetTestWound()
 	return true;
 }
 
+bool UFieldMatchSession::SetTestDetailsAuthorization(const bool bAuthorized)
+{
+	if (State.bDetailsAuthorized == bAuthorized)
+	{
+		return false;
+	}
+	State.bDetailsAuthorized = bAuthorized;
+	Changed.Broadcast();
+	return true;
+}
+
 FFieldCommandResult UFieldMatchSession::BeginSkillSelection(const EFieldSkillType Type)
 {
 	FFieldCommandResult Result = ValidateDeploymentCommand();
