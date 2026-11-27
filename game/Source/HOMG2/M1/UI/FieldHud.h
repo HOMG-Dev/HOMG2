@@ -7,6 +7,7 @@ class SWidget;
 class UGameViewportClient;
 class ULocalPlayer;
 class UFieldMatchSession;
+struct FFieldMatchSnapshot;
 
 UCLASS()
 class HOMG2_API AFieldHud : public AHUD
@@ -23,6 +24,7 @@ protected:
 private:
 	void HandleMatchChanged();
 	void RemoveLayout();
+	FReply HandleReadyClicked();
 
 	TSharedPtr<SWidget> Layout;
 	TWeakObjectPtr<UGameViewportClient> ViewportClient;

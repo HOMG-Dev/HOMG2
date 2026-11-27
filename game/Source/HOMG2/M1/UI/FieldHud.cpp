@@ -61,19 +61,29 @@ TSharedRef<SWidget> Stat(const FText& Label, const FText& Value, const FLinearCo
 		+ SVerticalBox::Slot().AutoHeight().Padding(0, 3, 0, 0)[Text(Value, 15, Color, true)];
 }
 
-TSharedRef<SWidget> StatusBar()
+FText PhaseLabel(const EFieldMatchPhase Phase)
+{
+	switch (Phase)
+	{
+	case EFieldMatchPhase::Spectating: return LOCTEXT("Spectating", "Spectating");
+	case EFieldMatchPhase::Settlement: return LOCTEXT("Settlement", "Settlement");
+	default: return LOCTEXT("Deployment", "Deployment");
+	}
+}
+
+TSharedRef<SWidget> StatusBar(const FFieldMatchSnapshot& Snapshot)
 {
 	return Surface(SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
 		[Text(LOCTEXT("Sector", "Training grounds"), 20, Ink, true)]
 		+ SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 26, 0)
-		[Stat(LOCTEXT("Round", "ROUND"), FText::AsNumber(1))]
+		[Stat(LOCTEXT("Round", "ROUND"), FText::AsNumber(Snapshot.Round))]
 		+ SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 26, 0)
-		[Stat(LOCTEXT("Phase", "PHASE"), LOCTEXT("Deployment", "Deployment"), Accent)]
+		[Stat(LOCTEXT("Phase", "PHASE"), PhaseLabel(Snapshot.Phase), Accent)]
 		+ SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 26, 0)
-		[Stat(LOCTEXT("Time", "TIME LEFT"), LOCTEXT("FixtureTime", "00:45"))]
+		[Stat(LOCTEXT("Time", "TIME LEFT"), FText::FromString(FString::Printf(TEXT("%02d:%02d"), Snapshot.SecondsRemaining / 60, Snapshot.SecondsRemaining % 60)))]
 		+ SHorizontalBox::Slot().AutoWidth()
-		[Stat(LOCTEXT("Gold", "GOLD"), FText::AsNumber(240))], Panel, FMargin(16, 10));
+		[Stat(LOCTEXT("Gold", "GOLD"), FText::AsNumber(Snapshot.Gold))], Panel, FMargin(16, 10));
 }
 
 TSharedRef<SWidget> RosterButton(const FText& Name, const FText& Strength, bool bSelected = false)
@@ -141,26 +151,30 @@ TSharedRef<SWidget> BattalionDetails()
 		+ SVerticalBox::Slot().FillHeight(1)[Members], Panel, FMargin(12));
 }
 
-TSharedRef<SWidget> ActionBar()
+TSharedRef<SWidget> ActionBar(const FFieldMatchSnapshot& Snapshot, const FOnClicked& ReadyHandler)
 {
-	return Surface(SNew(SHorizontalBox)
+	TSharedRef<SHorizontalBox> RowWidget = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
-		[Text(LOCTEXT("FixtureLabel", "LAYOUT PREVIEW"), 10, Muted, true)]
-		+ SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 6, 0)
-		[FixtureButton(Text(LOCTEXT("Reinforce", "Reinforce"), 12, Ink, true), Row)]
-		+ SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 6, 0)
-		[FixtureButton(Text(LOCTEXT("Order", "Issue order"), 12, Ink, true), Row)]
-		+ SHorizontalBox::Slot().AutoWidth()
-		[FixtureButton(Text(LOCTEXT("Ready", "Ready"), 12, Accent, true), Selection)], Panel, FMargin(12, 7));
+		[Text(Snapshot.Phase == EFieldMatchPhase::Deployment ? LOCTEXT("DeploymentControls", "DEPLOYMENT CONTROLS") : LOCTEXT("ReadOnly", "READ-ONLY OBSERVATION"), 10, Muted, true)];
+	if (Snapshot.Phase == EFieldMatchPhase::Deployment)
+	{
+		RowWidget->AddSlot().AutoWidth()
+			[ SNew(SButton)
+				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+				.ContentPadding(0)
+				.OnClicked(ReadyHandler)
+				[Surface(Text(LOCTEXT("Ready", "Ready"), 12, Accent, true), Selection, FMargin(12, 8))] ];
+	}
+	return Surface(RowWidget, Panel, FMargin(12, 7));
 }
 
-TSharedRef<SWidget> BuildLayout()
+TSharedRef<SWidget> BuildLayout(const FFieldMatchSnapshot& Snapshot, const FOnClicked& ReadyHandler)
 {
 	return SNew(SOverlay).Visibility(EVisibility::SelfHitTestInvisible)
 		+ SOverlay::Slot().Padding(12)
 		[
 			SNew(SVerticalBox).Visibility(EVisibility::SelfHitTestInvisible)
-			+ SVerticalBox::Slot().AutoHeight()[StatusBar()]
+			+ SVerticalBox::Slot().AutoHeight()[StatusBar(Snapshot)]
 			+ SVerticalBox::Slot().FillHeight(1).Padding(0, 8)
 			[
 				SNew(SHorizontalBox).Visibility(EVisibility::SelfHitTestInvisible)
@@ -168,7 +182,7 @@ TSharedRef<SWidget> BuildLayout()
 				+ SHorizontalBox::Slot().FillWidth(0.57f)[SNew(SSpacer).Visibility(EVisibility::HitTestInvisible)]
 				+ SHorizontalBox::Slot().FillWidth(0.24f)[BattalionDetails()]
 			]
-			+ SVerticalBox::Slot().AutoHeight()[ActionBar()]
+			+ SVerticalBox::Slot().AutoHeight()[ActionBar(Snapshot, ReadyHandler)]
 		]
 		+ SOverlay::Slot()
 		[
@@ -207,7 +221,8 @@ void AFieldHud::BeginPlay()
 			}
 		}
 
-		Layout = BuildLayout();
+		const FFieldMatchSnapshot Snapshot = MatchSession.IsValid() ? MatchSession->GetSnapshot() : FFieldMatchSnapshot{};
+		Layout = BuildLayout(Snapshot, FOnClicked::CreateUObject(this, &ThisClass::HandleReadyClicked));
 		Viewport->AddViewportWidgetForPlayer(Player, Layout.ToSharedRef(), 0);
 	}
 }
@@ -225,12 +240,21 @@ void AFieldHud::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AFieldHud::HandleMatchChanged()
 {
-	// E2 keeps the subscription alive for the whole battlefield lifetime. E3 and later
-	// stages replace the fixture contents from the same session snapshot.
-	if (Layout.IsValid())
+	if (MatchSession.IsValid() && ViewportClient.IsValid() && LocalPlayer.IsValid())
 	{
-		Layout->Invalidate(EInvalidateWidgetReason::PaintAndVolatility);
+		RemoveLayout();
+		Layout = BuildLayout(MatchSession->GetSnapshot(), FOnClicked::CreateUObject(this, &ThisClass::HandleReadyClicked));
+		ViewportClient->AddViewportWidgetForPlayer(LocalPlayer.Get(), Layout.ToSharedRef(), 0);
 	}
+}
+
+FReply AFieldHud::HandleReadyClicked()
+{
+	if (MatchSession.IsValid())
+	{
+		MatchSession->Ready();
+	}
+	return FReply::Handled();
 }
 
 void AFieldHud::RemoveLayout()
