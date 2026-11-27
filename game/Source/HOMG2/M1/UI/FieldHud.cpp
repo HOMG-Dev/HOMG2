@@ -71,6 +71,19 @@ FText PhaseLabel(const EFieldMatchPhase Phase)
 	}
 }
 
+FText SkillPreviewLabel(const EFieldSkillType Type)
+{
+	switch (Type)
+	{
+	case EFieldSkillType::Trench: return LOCTEXT("PreviewTrench", "TEST PREVIEW: TRENCH");
+	case EFieldSkillType::Wire: return LOCTEXT("PreviewWire", "TEST PREVIEW: WIRE");
+	case EFieldSkillType::AntiPersonnelMine: return LOCTEXT("PreviewAntiPersonnelMine", "TEST PREVIEW: AP MINE");
+	case EFieldSkillType::AntiTankMine: return LOCTEXT("PreviewAntiTankMine", "TEST PREVIEW: AT MINE");
+	case EFieldSkillType::AirSupport: return LOCTEXT("PreviewAirSupport", "TEST PREVIEW: AIR SUPPORT");
+	default: return LOCTEXT("PreviewUnknown", "TEST PREVIEW");
+	}
+}
+
 TSharedRef<SWidget> StatusBar(const FFieldMatchSnapshot& Snapshot)
 {
 	return Surface(SNew(SHorizontalBox)
@@ -326,8 +339,21 @@ void AFieldHud::DrawHUD()
 		FVector2D Screen;
 		if (Controller->ProjectWorldLocationToScreen(Preview.Location, Screen))
 		{
-			DrawRect(Preview.Type == EFieldSkillType::AirSupport ? FLinearColor(1.0f, 0.62f, 0.25f, 0.9f) : Accent,
-				Screen.X - 24.0f, Screen.Y - 24.0f, 48.0f, 48.0f);
+			const bool bAirSupport = Preview.Type == EFieldSkillType::AirSupport;
+			const FLinearColor PreviewColor = bAirSupport
+				? FLinearColor(1.0f, 0.62f, 0.25f, 0.95f)
+				: Accent;
+			const float Left = Screen.X - 24.0f;
+			const float Top = Screen.Y - 24.0f;
+			const float Right = Screen.X + 24.0f;
+			const float Bottom = Screen.Y + 24.0f;
+			DrawLine(Left, Top, Right, Top, PreviewColor, 2.0f);
+			DrawLine(Right, Top, Right, Bottom, PreviewColor, 2.0f);
+			DrawLine(Right, Bottom, Left, Bottom, PreviewColor, 2.0f);
+			DrawLine(Left, Bottom, Left, Top, PreviewColor, 2.0f);
+			DrawLine(Screen.X - 7.0f, Screen.Y, Screen.X + 7.0f, Screen.Y, PreviewColor, 1.0f);
+			DrawLine(Screen.X, Screen.Y - 7.0f, Screen.X, Screen.Y + 7.0f, PreviewColor, 1.0f);
+			DrawText(SkillPreviewLabel(Preview.Type).ToString(), PreviewColor, Left, Bottom + 5.0f, nullptr, 0.85f);
 		}
 	}
 }
