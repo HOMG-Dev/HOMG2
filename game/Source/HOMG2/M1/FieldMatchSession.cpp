@@ -22,6 +22,8 @@ void UFieldMatchSession::InitializeFixture()
 	Equipment.Id = FGuid::NewGuid();
 	Equipment.Kind = TEXT("TestEquipment");
 	State.Inventory.Add(Equipment);
+	State.VisibleIntel.Add({FVector(900.0f, 450.0f, 30.0f), NSLOCTEXT("FieldMatch", "Contact", "Contact")});
+	State.HistoricalIntel.Reset();
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -124,7 +126,10 @@ void UFieldMatchSession::AdvancePhase()
 	switch (State.Phase)
 	{
 	case EFieldMatchPhase::Deployment: State.Phase = EFieldMatchPhase::Spectating; break;
-	case EFieldMatchPhase::Spectating: State.Phase = EFieldMatchPhase::Settlement; break;
+	case EFieldMatchPhase::Spectating:
+		State.HistoricalIntel = State.VisibleIntel;
+		State.Phase = EFieldMatchPhase::Settlement;
+		break;
 	case EFieldMatchPhase::Settlement: State.Phase = EFieldMatchPhase::Deployment; ++State.Round; break;
 	}
 	PhaseDeadline = World->GetTimeSeconds() + DurationForPhase();

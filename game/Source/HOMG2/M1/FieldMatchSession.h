@@ -55,6 +55,14 @@ struct FFieldEquipmentSnapshot
 	UPROPERTY(BlueprintReadOnly) FName Kind;
 };
 
+USTRUCT(BlueprintType)
+struct FFieldIntelSnapshot
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly) FVector Location = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadOnly) FText Label;
+};
+
 // A value copy: changing it never changes the session.
 USTRUCT(BlueprintType)
 struct FFieldMatchSnapshot
@@ -67,6 +75,8 @@ struct FFieldMatchSnapshot
 	UPROPERTY(BlueprintReadOnly) int32 SecondsRemaining = 45;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldBattalionSnapshot> Battalions;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldEquipmentSnapshot> Inventory;
+	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> VisibleIntel;
+	UPROPERTY(BlueprintReadOnly) TArray<FFieldIntelSnapshot> HistoricalIntel;
 };
 
 DECLARE_MULTICAST_DELEGATE(FFieldMatchChanged);

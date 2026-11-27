@@ -238,6 +238,30 @@ void AFieldHud::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void AFieldHud::DrawHUD()
+{
+	Super::DrawHUD();
+	APlayerController* Controller = GetOwningPlayerController();
+	if (!Canvas || !Controller || !MatchSession.IsValid())
+	{
+		return;
+	}
+
+	const FFieldMatchSnapshot Snapshot = MatchSession->GetSnapshot();
+	const TArray<FFieldIntelSnapshot>& Markers = Snapshot.Phase == EFieldMatchPhase::Spectating
+		? Snapshot.VisibleIntel : Snapshot.HistoricalIntel;
+	const FLinearColor MarkerColor = Snapshot.Phase == EFieldMatchPhase::Spectating
+		? Accent : FLinearColor(0.55f, 0.62f, 0.68f, 0.75f);
+	for (const FFieldIntelSnapshot& Marker : Markers)
+	{
+		FVector2D Screen;
+		if (Controller->ProjectWorldLocationToScreen(Marker.Location, Screen))
+		{
+			DrawText(Marker.Label.ToString(), MarkerColor, Screen.X, Screen.Y, nullptr, 1.1f);
+		}
+	}
+}
+
 void AFieldHud::HandleMatchChanged()
 {
 	if (MatchSession.IsValid() && ViewportClient.IsValid() && LocalPlayer.IsValid())
