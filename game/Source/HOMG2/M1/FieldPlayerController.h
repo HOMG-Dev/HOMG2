@@ -15,6 +15,8 @@ class HOMG2_API AFieldPlayerController : public AFrameworkPlayerController
 
 public:
 	AFieldPlayerController();
+	UFUNCTION(Exec)
+	void DemoWound();
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

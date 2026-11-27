@@ -14,6 +14,14 @@ enum class EFieldMatchPhase : uint8
 };
 
 UENUM(BlueprintType)
+enum class EFieldUnitCondition : uint8
+{
+	Healthy,
+	Wounded,
+	Critical
+};
+
+UENUM(BlueprintType)
 enum class EFieldCommandCode : uint8
 {
 	Success,
@@ -37,6 +45,7 @@ struct FFieldMemberSnapshot
 {
 	GENERATED_BODY()
 	UPROPERTY(BlueprintReadOnly) FGuid Id;
+	UPROPERTY(BlueprintReadOnly) EFieldUnitCondition Condition = EFieldUnitCondition::Healthy;
 };
 
 USTRUCT(BlueprintType)
@@ -45,6 +54,9 @@ struct FFieldBattalionSnapshot
 	GENERATED_BODY()
 	UPROPERTY(BlueprintReadOnly) FGuid Id;
 	UPROPERTY(BlueprintReadOnly) TArray<FFieldMemberSnapshot> Members;
+	UPROPERTY(BlueprintReadOnly) FText Name;
+	UPROPERTY(BlueprintReadOnly) EFieldUnitCondition Condition = EFieldUnitCondition::Healthy;
+	UPROPERTY(BlueprintReadOnly) FVector Location = FVector::ZeroVector;
 };
 
 USTRUCT(BlueprintType)
@@ -111,6 +123,8 @@ public:
 	FFieldCommandResult ValidateDeploymentCommand() const;
 	UFUNCTION(BlueprintCallable, Category="M1|Match")
 	FFieldCommandResult SpendTestGold(int32 Amount);
+	UFUNCTION(BlueprintCallable, Category="M1|Match")
+	bool SetTestWound();
 
 private:
 	void UpdateClock();

@@ -117,9 +117,20 @@ TSharedRef<SWidget> MemberCard(const FText& Role, const FText& Status)
 		], Row, FMargin(12, 0));
 }
 
-TSharedRef<SWidget> BattalionDetails()
+FText ConditionLabel(const EFieldUnitCondition Condition)
 {
-	const FText Deployed = LOCTEXT("MemberDeployed", "In formation");
+	switch (Condition)
+	{
+	case EFieldUnitCondition::Critical: return LOCTEXT("Critical", "Critical");
+	case EFieldUnitCondition::Wounded: return LOCTEXT("Wounded", "Wounded");
+	default: return LOCTEXT("Healthy", "Healthy");
+	}
+}
+
+TSharedRef<SWidget> BattalionDetails(const FFieldMatchSnapshot& Snapshot)
+{
+	const FFieldBattalionSnapshot* Battalion = Snapshot.Battalions.IsEmpty() ? nullptr : &Snapshot.Battalions[0];
+	const FText Deployed = Battalion ? ConditionLabel(Battalion->Condition) : LOCTEXT("MemberDeployed", "In formation");
 	const FText Roles[] = {
 		LOCTEXT("Commander", "Field commander"), LOCTEXT("Scout", "Scout"), LOCTEXT("Signal", "Signaller"),
 		LOCTEXT("Guard", "Guard"), LOCTEXT("Engineer", "Engineer"), LOCTEXT("Medic", "Medic"),
@@ -138,12 +149,12 @@ TSharedRef<SWidget> BattalionDetails()
 
 	return Surface(SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[Text(LOCTEXT("BattalionDetails", "BATTALION DETAILS"), 10, Accent, true)]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0, 4, 0, 12)[Text(LOCTEXT("Vanguard", "Vanguard"), 20, Ink, true)]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0, 4, 0, 12)[Text(Battalion ? Battalion->Name : LOCTEXT("Vanguard", "Vanguard"), 20, Ink, true)]
 		+ SVerticalBox::Slot().AutoHeight()
 		[
 			Surface(SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().FillWidth(1)[Stat(LOCTEXT("Members", "PRESENT"), FText::AsNumber(8))]
-				+ SHorizontalBox::Slot().FillWidth(1)[Stat(LOCTEXT("Transit", "EN ROUTE"), FText::AsNumber(1))]
+				+ SHorizontalBox::Slot().FillWidth(1)[Stat(LOCTEXT("Members", "PRESENT"), FText::AsNumber(Battalion ? Battalion->Members.Num() : 0))]
+				+ SHorizontalBox::Slot().FillWidth(1)[Stat(LOCTEXT("Transit", "EN ROUTE"), FText::AsNumber(0))]
 				+ SHorizontalBox::Slot().FillWidth(1)[Stat(LOCTEXT("Capacity", "CAPACITY"), FText::AsNumber(9))],
 				Selection, FMargin(9, 8))
 		]
@@ -180,7 +191,7 @@ TSharedRef<SWidget> BuildLayout(const FFieldMatchSnapshot& Snapshot, const FOnCl
 				SNew(SHorizontalBox).Visibility(EVisibility::SelfHitTestInvisible)
 				+ SHorizontalBox::Slot().FillWidth(0.19f)[BattalionList()]
 				+ SHorizontalBox::Slot().FillWidth(0.57f)[SNew(SSpacer).Visibility(EVisibility::HitTestInvisible)]
-				+ SHorizontalBox::Slot().FillWidth(0.24f)[BattalionDetails()]
+				+ SHorizontalBox::Slot().FillWidth(0.24f)[BattalionDetails(Snapshot)]
 			]
 			+ SVerticalBox::Slot().AutoHeight()[ActionBar(Snapshot, ReadyHandler)]
 		]
@@ -272,6 +283,16 @@ void AFieldHud::DrawHUD()
 		if (Controller->ProjectWorldLocationToScreen(Marker.Location, Screen))
 		{
 			DrawText(Marker.Label.ToString(), MarkerColor, Screen.X, Screen.Y, nullptr, 1.1f);
+		}
+	}
+	for (const FFieldBattalionSnapshot& Battalion : Snapshot.Battalions)
+	{
+		FVector2D Screen;
+		if (Controller->ProjectWorldLocationToScreen(Battalion.Location, Screen))
+		{
+			DrawText(ConditionLabel(Battalion.Condition).ToString(),
+				Battalion.Condition == EFieldUnitCondition::Critical ? FLinearColor(1.0f, 0.45f, 0.35f) : Accent,
+				Screen.X, Screen.Y + 22.0f, nullptr, 1.0f);
 		}
 	}
 }

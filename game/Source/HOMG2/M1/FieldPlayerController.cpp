@@ -12,6 +12,8 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "M1/FieldCameraPawn.h"
+#include "M1/FieldGameMode.h"
+#include "M1/FieldMatchSession.h"
 #include "Widgets/SViewport.h"
 
 AFieldPlayerController::AFieldPlayerController()
@@ -166,4 +168,15 @@ void AFieldPlayerController::OnUnPossess()
 	ClearPanInput();
 	ClearHeightInput();
 	Super::OnUnPossess();
+}
+
+void AFieldPlayerController::DemoWound()
+{
+	if (AFieldGameMode* GameMode = GetWorld()->GetAuthGameMode<AFieldGameMode>())
+	{
+		if (UFieldMatchSession* Session = GameMode->GetMatchSession())
+		{
+			Session->SetTestWound();
+		}
+	}
 }

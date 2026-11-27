@@ -11,6 +11,8 @@ void UFieldMatchSession::InitializeFixture()
 	State.SessionId = FGuid::NewGuid();
 	FFieldBattalionSnapshot Battalion;
 	Battalion.Id = FGuid::NewGuid();
+	Battalion.Name = NSLOCTEXT("FieldMatch", "Vanguard", "Vanguard");
+	Battalion.Location = FVector(-2800.0f, 0.0f, 0.0f);
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
 		FFieldMemberSnapshot Member;
@@ -28,6 +30,18 @@ void UFieldMatchSession::InitializeFixture()
 		FVector(-4200.0f, -850.0f, 35.0f), FVector(-1800.0f, -250.0f, 35.0f),
 		FVector(400.0f, -500.0f, 35.0f), FVector(2900.0f, 250.0f, 35.0f)
 	};
+}
+
+bool UFieldMatchSession::SetTestWound()
+{
+	if (State.Battalions.IsEmpty() || State.Battalions[0].Members.IsEmpty())
+	{
+		return false;
+	}
+	State.Battalions[0].Condition = EFieldUnitCondition::Critical;
+	State.Battalions[0].Members[0].Condition = EFieldUnitCondition::Critical;
+	Changed.Broadcast();
+	return true;
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
